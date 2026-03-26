@@ -3,6 +3,7 @@ using FluentAssertions;
 using ModernGateway;
 using System.Threading.Tasks;
 using System.Threading;
+using ModbusOpcGateway;
 
 public class SharedDataTests
 {
