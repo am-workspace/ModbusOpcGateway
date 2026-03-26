@@ -45,10 +45,20 @@ namespace ModernGateway
                 var appSettings = new AppSettings();
                 config.Bind(appSettings);
 
+                // 校验 SlaveId 合法性
+                if (appSettings.Modbus.SlaveId < 1 || appSettings.Modbus.SlaveId > 247)
+                {
+                    _log.Error("Invalid Modbus Slave ID: {Id}. Must be between 1 and 247.", appSettings.Modbus.SlaveId);
+                    // 可以选择强制修正为默认值，或者直接退出
+                    // appSettings.Modbus.SlaveId = 1; 
+                    return;
+                }
+
                 // 验证配置加载是否成功
                 //Console.WriteLine($"[Config] Loaded settings. Modbus Port: {appSettings.Modbus.Port}, Mode: {appSettings.Simulation.InitialMode}");
-                _log.Information("Loaded Config: Port={Port}, Mode={Mode}",
+                _log.Information("Loaded Config: Port={Port}, Id={Id}, Mode={Mode}",
                         appSettings.Modbus.Port,
+                        appSettings.Modbus.SlaveId,
                         appSettings.Simulation.InitialMode);
 
                 // 3. 程序启动欢迎信息

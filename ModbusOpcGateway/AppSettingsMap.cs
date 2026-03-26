@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace ModbusOpcGateway
@@ -14,7 +15,9 @@ namespace ModbusOpcGateway
 
     public class ModbusSettings
     {
+        [Range(1024, 65535)]
         public int Port { get; set; } = 5020;
+        [Range(1, 247)]
         public byte SlaveId { get; set; } = 1;
         public string IpAddress { get; set; } = "0.0.0.0";
     }
