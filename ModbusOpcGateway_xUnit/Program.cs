@@ -13,21 +13,21 @@ namespace ModbusOpcGateway_xUnit
         /// <summary>
         /// 主程序，执行所有测试方法。
         /// </summary>
-        static void Main()
-        {
-            var sharedDataTests = new SharedDataTests();
+        //static void Main()
+        //{
+        //    var sharedDataTests = new SharedDataTests();
 
-            sharedDataTests.Update_And_Get_Should_Be_Consistent();
+        //    sharedDataTests.Update_And_Get_Should_Be_Consistent();
 
-            sharedDataTests.GetTempReg_Should_Scale_Correctly();
+        //    sharedDataTests.GetTempReg_Should_Scale_Correctly();
 
-            sharedDataTests.Thread_Safety_Test().Wait();
+        //    sharedDataTests.Thread_Safety_Test().Wait();
 
-            var registerMapTests = new RegisterMapTests();
+        //    var registerMapTests = new RegisterMapTests();
 
-            registerMapTests.GenerateMarkdown_Should_Contain_Headers();
+        //    registerMapTests.GenerateMarkdown_Should_Contain_Headers();
 
-            registerMapTests.Definitions_Should_Not_Have_Duplicate_Addresses();
-        }
+        //    registerMapTests.Definitions_Should_Not_Have_Duplicate_Addresses();
+        //}
     }
 }
