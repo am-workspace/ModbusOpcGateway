@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ModbusOpcGateway
+namespace ModernGateway
 {
     /// <summary>
     /// 共享数据中心：存储模拟器的所有状态（传感器数值、配置参数）。

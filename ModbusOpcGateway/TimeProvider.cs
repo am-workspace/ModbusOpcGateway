@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ModbusOpcGateway
+namespace ModernGateway
 {
     // 时间服务接口：用于替代 Task.Delay
     public interface ITimeProvider

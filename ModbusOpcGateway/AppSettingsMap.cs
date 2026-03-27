@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace ModbusOpcGateway
+namespace ModernGateway
 {
     // 定义配置映射类
     public class AppSettings

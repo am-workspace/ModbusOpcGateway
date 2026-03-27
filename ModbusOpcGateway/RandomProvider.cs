@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ModbusOpcGateway
+namespace ModernGateway
 {
     // 随机数服务接口：用于替代 new Random()
     public interface IRandomProvider
