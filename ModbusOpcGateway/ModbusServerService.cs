@@ -188,6 +188,32 @@ namespace ModernGateway
                             {
                                 _sharedData.SetResponseDelay(val);
                             }
+                            else if (addr == RegisterMap.FaultInjectionControl)
+                            {
+                                // 故障注入控制
+                                switch (val)
+                                {
+                                    case 0:
+                                        _sharedData.ResumeNormal();
+                                        _log.Information("[FaultInjection] Resumed normal operation");
+                                        break;
+                                    case 1:
+                                        _sharedData.InjectFaultyTemperature();
+                                        _log.Warning("[FaultInjection] Injected faulty temperature (999.9°C)");
+                                        break;
+                                    case 2:
+                                        _sharedData.InjectFaultyPressure();
+                                        _log.Warning("[FaultInjection] Injected faulty pressure (-50.0 kPa)");
+                                        break;
+                                    case 3:
+                                        _sharedData.FreezeData();
+                                        _log.Warning("[FaultInjection] Frozen data updates");
+                                        break;
+                                    default:
+                                        _log.Warning("[FaultInjection] Unknown control code: {Code}", val);
+                                        break;
+                                }
+                            }
                         }
                     }
                     else if (e.ModbusDataType == ModbusDataType.Coil)

@@ -51,6 +51,14 @@ namespace ModernGateway
         /// </summary>
         public const ushort ResponseDelayMs = 12;
 
+        // --- 故障模拟寄存器 (Holding Registers, 功能码 06/16) ---
+
+        /// <summary>
+        /// 地址 100: 故障注入控制 (0=恢复正常, 1=异常温度, 2=异常压力, 3=冻结数据)
+        /// 用于测试上位机的异常处理能力。
+        /// </summary>
+        public const ushort FaultInjectionControl = 100;
+
         // --- 线圈 (Coils, 功能码 01/05/15) ---
 
         /// <summary>
@@ -120,6 +128,15 @@ namespace ModernGateway
                     Description = "设备运行状态开关",
                     Unit = "Boolean",
                     ScaleInfo = "0=Off, 1=On"
+                },
+                new RegisterDefinition {
+                    Address = FaultInjectionControl,
+                    Name = "FaultInjectionControl",
+                    Type = "HoldingRegister",
+                    IsWritable = true,
+                    Description = "故障注入控制 (0:正常, 1:异常温度, 2:异常压力, 3:冻结数据)",
+                    Unit = "Enum",
+                    ScaleInfo = "直接写入控制码"
                 }
             };
         }
@@ -152,6 +169,12 @@ namespace ModernGateway
             sb.AppendLine("- `0`: Random (随机波动)");
             sb.AppendLine("- `1`: Trend (正弦波趋势)");
             sb.AppendLine("- `2`: Frozen (数值冻结)");
+            sb.AppendLine();
+            sb.AppendLine("### FaultInjectionControl (地址 100)");
+            sb.AppendLine("- `0`: ResumeNormal (恢复正常)");
+            sb.AppendLine("- `1`: FaultyTemperature (异常温度 999.9°C)");
+            sb.AppendLine("- `2`: FaultyPressure (异常压力 -50.0 kPa)");
+            sb.AppendLine("- `3`: FreezeData (冻结数据更新)");
 
             return sb.ToString();
         }

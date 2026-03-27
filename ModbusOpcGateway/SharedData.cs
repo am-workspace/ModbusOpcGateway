@@ -152,5 +152,46 @@ namespace ModernGateway
         {
             lock (_lock) _delayMs = ms;
         }
+
+        // ========================================================================
+        // ⚠️ 故障模拟方法 (Fault Injection)
+        // 用于测试上位机的异常处理能力，由外部客户端通过 Modbus 触发
+        // ========================================================================
+
+        /// <summary>
+        /// 注入异常温度值（模拟传感器故障）。
+        /// 温度值设为 999.9°C，明显超出正常范围，用于测试上位机的数据校验逻辑。
+        /// </summary>
+        public void InjectFaultyTemperature()
+        {
+            lock (_lock) _temperature = 999.9f;
+        }
+
+        /// <summary>
+        /// 注入异常压力值（模拟传感器故障）。
+        /// 压力值设为 -50.0 kPa，物理上不可能，用于测试上位机的数据校验逻辑。
+        /// </summary>
+        public void InjectFaultyPressure()
+        {
+            lock (_lock) _pressure = -50.0f;
+        }
+
+        /// <summary>
+        /// 冻结数据更新（模拟传感器卡死）。
+        /// 切换到 Frozen 模式，数据生成器将停止更新数值。
+        /// </summary>
+        public void FreezeData()
+        {
+            SetMode(SimulationMode.Frozen);
+        }
+
+        /// <summary>
+        /// 恢复正常数据生成。
+        /// 切换到 Random 模式，数据生成器恢复正常工作。
+        /// </summary>
+        public void ResumeNormal()
+        {
+            SetMode(SimulationMode.Random);
+        }
     }
 }

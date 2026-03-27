@@ -13,7 +13,7 @@ public class ProviderTests
     public void TimeProvider_UtcNow_Should_Return_Utc_Time()
     {
         // Arrange
-        var timeProvider = new TimeProvider();
+        var timeProvider = new ModernGateway.TimeProvider();
 
         // Act
         var result = timeProvider.UtcNow;
@@ -28,7 +28,7 @@ public class ProviderTests
     public async Task TimeProvider_Delay_Should_Respect_CancellationToken()
     {
         // Arrange
-        var timeProvider = new TimeProvider();
+        var timeProvider = new ModernGateway.TimeProvider();
         using var cts = new CancellationTokenSource();
 
         // Act
@@ -43,7 +43,7 @@ public class ProviderTests
     public async Task TimeProvider_Delay_Should_Complete_Without_Exception()
     {
         // Arrange
-        var timeProvider = new TimeProvider();
+        var timeProvider = new ModernGateway.TimeProvider();
         using var cts = new CancellationTokenSource();
 
         // Act
