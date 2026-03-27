@@ -8,8 +8,14 @@ using System.Threading.Tasks;
 
 namespace ModernGateway
 {
+    /// <summary>
+    /// 应用程序入口：配置依赖注入并启动后台服务。
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// 程序入口点：构建 Host 并启动服务。
+        /// </summary>
         public static async Task Main(string[] args)
         {
             var host = Host.CreateDefaultBuilder(args)
@@ -40,7 +46,9 @@ namespace ModernGateway
         // 定义静态 Logger，全局可用
         private static readonly ILogger _log = Log.ForContext<Program>();
 
-        // 保留原有主逻辑，后续逐步迁移
+        /// <summary>
+        /// 初始化逻辑：验证配置、应用初始设置、生成寄存器文档。
+        /// </summary>
         private static async Task RunMainLogic(IServiceProvider services)
         {
             // 通过依赖注入获取配置和共享数据

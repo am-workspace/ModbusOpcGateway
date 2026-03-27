@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace ModernGateway
 {
+    /// <summary>
+    /// Modbus TCP 服务器服务：响应上位机读写请求，支持配置热重载。
+    /// </summary>
     public class ModbusServerService : BackgroundService
     {
         private readonly SharedData _sharedData;
@@ -46,6 +49,9 @@ namespace ModernGateway
             });
         }
 
+        /// <summary>
+        /// 服务主循环：配置变更时自动重启服务器。
+        /// </summary>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             // 外层循环：支持配置变更后自动重启
@@ -77,6 +83,9 @@ namespace ModernGateway
             }
         }
 
+        /// <summary>
+        /// 启动 Modbus TCP 服务器并处理客户端请求。
+        /// </summary>
         private async Task RunServerAsync(CancellationToken cancellationToken)
         {
             var config = _currentModbusConfig;
