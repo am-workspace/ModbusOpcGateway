@@ -17,6 +17,9 @@ namespace Industrial.Core
         // 同一时间只允许一个线程持有锁，其他线程必须等待。
         readonly object _lock = new object();
 
+        // 数据变更事件，供 SignalR 广播使用
+        public event EventHandler<DataChangedEventArgs>? DataChanged;
+
         // --- 传感器实时数据 (由 RunGenerator 写入，由 RunModbusServer 读取) ---
         float _temperature = 25.0f; // 当前温度 (°C)
         float _pressure = 100.0f;   // 当前压力 (kPa)
@@ -113,6 +116,17 @@ namespace Industrial.Core
                 _pressure = press;
                 _status = status;
             }
+            // 触发数据变更事件
+            DataChanged?.Invoke(this, new DataChangedEventArgs(temp, press, status, _mode, _noise, _delayMs));
+        }
+
+        /// <summary>
+        /// 触发数据变更事件（用于配置变更时通知 UI 更新）
+        /// </summary>
+        public void NotifyDataChanged()
+        {
+            var (temp, press, status) = Snapshot();
+            DataChanged?.Invoke(this, new DataChangedEventArgs(temp, press, status, _mode, _noise, _delayMs));
         }
 
         // --- 以下方法供 Modbus 服务器调用，响应外部客户端的"写请求" ---
@@ -192,6 +206,30 @@ namespace Industrial.Core
         public void ResumeNormal()
         {
             SetMode(SimulationMode.Random);
+        }
+    }
+
+    /// <summary>
+    /// 数据变更事件参数
+    /// </summary>
+    public class DataChangedEventArgs : EventArgs
+    {
+        public float Temperature { get; }
+        public float Pressure { get; }
+        public bool Status { get; }
+        public SharedData.SimulationMode Mode { get; }
+        public float NoiseMultiplier { get; }
+        public int ResponseDelayMs { get; }
+
+        public DataChangedEventArgs(float temp, float press, bool status, 
+            SharedData.SimulationMode mode, float noise, int delayMs)
+        {
+            Temperature = temp;
+            Pressure = press;
+            Status = status;
+            Mode = mode;
+            NoiseMultiplier = noise;
+            ResponseDelayMs = delayMs;
         }
     }
 }

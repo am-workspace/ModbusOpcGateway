@@ -7,10 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// 注册 SignalR
+builder.Services.AddSignalR();
+
 // 注册 Industrial.Core 服务
 builder.Services.AddSingleton<SharedData>();
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddHostedService<ModbusServerService>();
+builder.Services.AddHostedService<ScadaBroadcastService>();
 builder.Services.Configure<AppSettings>(builder.Configuration);
 
 var app = builder.Build();
@@ -30,5 +34,8 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// 映射 SignalR Hub
+app.MapHub<ScadaHub>("/scadahub");
 
 app.Run();

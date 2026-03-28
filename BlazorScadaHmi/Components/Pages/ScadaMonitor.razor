@@ -1,11 +1,21 @@
 @page "/"
 @page "/monitor"
 @inject SharedData SharedData
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
 @rendermode InteractiveServer
 
 <PageTitle>SCADA 监控面板</PageTitle>
 
 <h1>SCADA 监控面板</h1>
+
+@if (!_isConnected)
+{
+    <div class="alert alert-warning">
+        <span class="spinner-border spinner-border-sm"></span>
+        正在连接 SignalR...
+    </div>
+}
 
 <div class="row">
     <div class="col-md-4">
@@ -93,73 +103,105 @@
     private float _noise;
     private int _delayMs;
 
-    private System.Threading.Timer? _timer;
+    private HubConnection? _hubConnection;
+    private bool _isConnected;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        UpdateDataFromSharedData();
-        
-        // 每秒刷新一次数据
-        _timer = new System.Threading.Timer(_ =>
+        // 创建 SignalR 连接
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/scadahub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        // 注册数据更新回调
+        _hubConnection.On<DataSnapshot>("DataUpdated", snapshot =>
         {
-            InvokeAsync(() =>
-            {
-                UpdateDataFromSharedData();
-                StateHasChanged();
-            });
-        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
-    }
+            _temperature = snapshot.Temperature;
+            _pressure = snapshot.Pressure;
+            _status = snapshot.Status;
+            _selectedMode = snapshot.Mode;
+            _noise = snapshot.NoiseMultiplier;
+            _delayMs = snapshot.ResponseDelayMs;
+            InvokeAsync(StateHasChanged);
+        });
 
-    private void UpdateDataFromSharedData()
-    {
-        var snapshot = SharedData.Snapshot();
-        _temperature = snapshot.Temp;
-        _pressure = snapshot.Press;
+        await _hubConnection.StartAsync();
+        _isConnected = true;
+
+        // 获取初始数据
+        var snapshot = await _hubConnection.InvokeAsync<DataSnapshot>("GetDataSnapshot");
+        _temperature = snapshot.Temperature;
+        _pressure = snapshot.Pressure;
         _status = snapshot.Status;
-        _selectedMode = (int)SharedData.GetMode();
-        _noise = SharedData.GetNoiseMultiplier();
-        _delayMs = SharedData.GetResponseDelayMs();
+        _selectedMode = snapshot.Mode;
+        _noise = snapshot.NoiseMultiplier;
+        _delayMs = snapshot.ResponseDelayMs;
     }
 
-    private void OnModeChanged()
+    private async Task OnModeChanged()
     {
-        SharedData.SetMode((SharedData.SimulationMode)_selectedMode);
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.InvokeAsync("SetMode", _selectedMode);
+        }
     }
 
-    private void OnNoiseChanged()
+    private async Task OnNoiseChanged()
     {
-        SharedData.SetNoiseMultiplier(_noise);
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.InvokeAsync("SetNoiseMultiplier", _noise);
+        }
     }
 
-    private void OnDelayChanged()
+    private async Task OnDelayChanged()
     {
-        SharedData.SetResponseDelay(_delayMs);
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.InvokeAsync("SetResponseDelay", _delayMs);
+        }
     }
 
-    private void ResumeNormal()
+    private async Task ResumeNormal()
     {
-        SharedData.ResumeNormal();
-        _selectedMode = 0;
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.InvokeAsync("ResumeNormal");
+            _selectedMode = 0;
+        }
     }
 
-    private void InjectFaultyTemperature()
+    private async Task InjectFaultyTemperature()
     {
-        SharedData.InjectFaultyTemperature();
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.InvokeAsync("InjectFaultyTemperature");
+        }
     }
 
-    private void InjectFaultyPressure()
+    private async Task InjectFaultyPressure()
     {
-        SharedData.InjectFaultyPressure();
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.InvokeAsync("InjectFaultyPressure");
+        }
     }
 
-    private void FreezeData()
+    private async Task FreezeData()
     {
-        SharedData.FreezeData();
-        _selectedMode = 2;
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.InvokeAsync("FreezeData");
+            _selectedMode = 2;
+        }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _timer?.Dispose();
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
     }
 }
