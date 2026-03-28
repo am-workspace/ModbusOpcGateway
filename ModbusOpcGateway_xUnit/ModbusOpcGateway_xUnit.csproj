@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ModbusOpcGateway\ModbusOpcGateway.csproj" />
+    <ProjectReference Include="..\Industrial.Core\Industrial.Core.csproj" />
   </ItemGroup>
 
 </Project>

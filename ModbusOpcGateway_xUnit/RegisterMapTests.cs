@@ -1,6 +1,6 @@
 ﻿using Xunit;
 using FluentAssertions;
-using ModernGateway;
+using Industrial.Core;
 using System.Linq;
 
 public class RegisterMapTests

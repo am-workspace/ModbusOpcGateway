@@ -1,6 +1,6 @@
 ﻿using Xunit;
 using FluentAssertions;
-using ModernGateway;
+using Industrial.Core;
 using System.Threading.Tasks;
 using System.Threading;
 
