@@ -14,8 +14,11 @@
   - 噪声系数调整（动态增加/减少数据抖动）
   - 响应延迟模拟（测试超时处理）
   - 模式动态切换（无需重启）
+- **⚡ 配置热重载**：修改 `appsettings.json` 后自动生效，无需重启服务（支持端口、SlaveId、IP 变更自动重启）
+- **🔧 故障模拟功能**：通过 Modbus 寄存器触发异常数据，测试上位机异常处理能力
+- **🪟 Windows 服务支持**：支持部署为 Windows 服务，7×24 小时运行
 - **线程安全**：采用细粒度锁保护，支持并发读写
-- **结构化日志**：Serilog 集成，支持控制台和文件输出，自动日期轮转
+- **结构化日志**：Serilog 集成，支持控制台、文件和 Windows 事件日志输出
 - **可配置化**：所有参数（端口、IP、生成周期、初始模式等）支持 `appsettings.json` 配置
 - **单元测试**：xUnit 测试框架，覆盖核心逻辑（SharedData、RegisterMap 等）
 - **文档生成**：自动生成 `REGISTER_MAP.md`，详细说明每个寄存器的地址、类型、缩放因子
@@ -94,6 +97,7 @@ Press Ctrl+C to stop.
 | **10** | SimulationMode | RW | 模式：0=Random, 1=Trend, 2=Frozen | - |
 | **11** | NoiseMultiplier | RW | 噪声系数 | ÷100 |
 | **12** | ResponseDelayMs | RW | 响应延迟（ms） | - |
+| **100** | FaultInjectionControl | RW | 故障注入控制：0=正常, 1=异常温度, 2=异常压力, 3=冻结数据 | - |
 
 ### 线圈 (Coils)
 
@@ -112,6 +116,72 @@ Press Ctrl+C to stop.
 **切换为 Trend 模式**（Modbus 功能码 06）：
 ```
 从站ID: 1, 地址: 10, 值: 1
+```
+
+---
+
+## 🪟 Windows 服务部署
+
+### 安装服务（以管理员身份运行 PowerShell）
+
+```powershell
+# 编译 Release 版本
+dotnet build -c Release
+
+# 安装并启动服务
+.\Install-Service.ps1
+```
+
+### 管理服务
+
+```powershell
+# 启动服务
+Start-Service -Name ModbusOpcGateway
+
+# 停止服务
+Stop-Service -Name ModbusOpcGateway
+
+# 查看服务状态
+Get-Service -Name ModbusOpcGateway
+
+# 查看日志
+Get-Content .\logs\modbus-simulator-*.log -Tail 50
+```
+
+### 卸载服务
+
+```powershell
+.\Uninstall-Service.ps1
+```
+
+---
+
+## ⚡ 配置热重载
+
+修改 `appsettings.json` 后，服务会自动检测变更：
+
+| 配置项 | 热重载行为 |
+|--------|-----------|
+| `Simulation` 相关 | 立即生效，无需重启 |
+| `Modbus.Port` / `SlaveId` / `IpAddress` | 自动重启服务，重新绑定端口 |
+
+---
+
+## 🔧 故障模拟
+
+通过向寄存器 **100** 写入控制码，触发异常数据：
+
+| 写入值 | 效果 | 用途 |
+|--------|------|------|
+| 0 | 恢复正常数据生成 | 结束测试 |
+| 1 | 温度变为 999.9°C | 测试数据上限校验 |
+| 2 | 压力变为 -50.0 kPa | 测试数据下限校验 |
+| 3 | 冻结数据更新 | 测试超时处理 |
+
+**示例**（使用 Modbus 功能码 06）：
+```
+从站ID: 1, 地址: 100, 值: 1  → 触发异常温度
+从站ID: 1, 地址: 100, 值: 0  → 恢复正常
 ```
 
 ---
@@ -135,7 +205,9 @@ dotnet test ModbusOpcGateway_xUnit/ModbusOpcGateway_xUnit.csproj
 ```
 ModbusOpcGateway/
 ├── Program.cs                    # 主程序
-├── SharedData.cs                 # 线程安全数据模型
+├── GeneratorService.cs           # 数据生成后台服务
+├── ModbusServerService.cs        # Modbus TCP 服务（支持热重载）
+├── SharedData.cs                 # 线程安全数据模型（含故障模拟）
 ├── RegisterMap.cs                # 寄存器定义
 ├── TimeProvider.cs               # 时间接口（支持单测）
 ├── RandomProvider.cs             # 随机数接口（支持单测）
@@ -146,7 +218,13 @@ ModbusOpcGateway/
 ModbusOpcGateway_xUnit/
 ├── SharedDataTests.cs            # 数据层单测
 ├── RegisterMapTests.cs           # 寄存器映射单测
+├── AppSettingsTests.cs           # 配置类单测
+├── ProviderTests.cs              # Provider 单测
 └── ...
+
+# 部署脚本
+├── Install-Service.ps1           # Windows 服务安装脚本
+└── Uninstall-Service.ps1         # Windows 服务卸载脚本
 ```
 
 ---
@@ -240,6 +318,6 @@ MIT License
 
 ---
 
-**版本**：v1.0.0  
+**版本**：v1.1.0  
 **维护者**：am-workspace  
-**更新时间**：2025-01-XX
+**更新时间**：2026-03-27
