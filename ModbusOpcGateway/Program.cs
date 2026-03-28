@@ -1,3 +1,4 @@
+using Industrial.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -7,7 +8,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace ModernGateway
+namespace ModbusOpcGateway
 {
     /// <summary>
     /// 应用程序入口：配置依赖注入并启动后台服务。
