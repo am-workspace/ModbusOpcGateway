@@ -33,6 +33,7 @@ namespace ModbusOpcGateway
                     services.AddSingleton<SharedData>();
                     services.AddHostedService<GeneratorService>();
                     services.AddHostedService<ModbusServerService>();
+                    services.AddHostedService<OpcUaServerService>();
                 })
                 .UseSerilog((context, services, configuration) =>
                 {

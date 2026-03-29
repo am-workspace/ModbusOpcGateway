@@ -11,6 +11,8 @@ namespace Industrial.Core
         public SerilogSettings Serilog { get; set; } = new();
         public UserSettings Users { get; set; } = new();
         public JwtSettings Jwt { get; set; } = new();
+        public OpcUaSettings OpcUa { get; set; } = new();
+        public MqttSettings Mqtt { get; set; } = new();
     }
 
     public class ModbusSettings
@@ -40,6 +42,24 @@ namespace Industrial.Core
     {
         public string Secret { get; set; } = "your-secret-key-must-be-at-least-16-characters";
         public int TokenExpiryMinutes { get; set; } = 480; // 默认8小时
+    }
+
+    public class OpcUaSettings
+    {
+        public bool Enabled { get; set; } = false;
+        public int Port { get; set; } = 4840;
+        public string ApplicationName { get; set; } = "ModbusOpcGateway";
+        public string ApplicationUri { get; set; } = "urn:localhost:ModbusOpcGateway";
+    }
+
+    public class MqttSettings
+    {
+        public bool Enabled { get; set; } = false;
+        public string Broker { get; set; } = "localhost";
+        public int Port { get; set; } = 1883;
+        public string TopicPrefix { get; set; } = "industrial";
+        public string? Username { get; set; }
+        public string? Password { get; set; }
     }
 
     public class AppSettingsMap
