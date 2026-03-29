@@ -2,9 +2,11 @@
 
 一个基于 **.NET 10** 的**高可靠、高可扩展的 Modbus TCP 从站模拟器**，用于模拟真实的 PLC 或传感器设备。支持多种数据生成模式、动态配置、结构化日志和单元测试。
 
+**附带 Blazor Server Web HMI 界面**，提供实时监控、历史趋势图、告警管理等完整 SCADA 功能。
+
 ## 📌 核心特性
 
-### ✅ 功能特性
+### ✅ Modbus 模拟器
 - **Modbus TCP 从站实现**：基于 NModbus4.NetCore，完全支持 Modbus 功能码（FC03、FC05、FC06、FC16 等）
 - **多模式数据生成**：
   - `Random` - 纯随机波动
@@ -22,6 +24,20 @@
 - **可配置化**：所有参数（端口、IP、生成周期、初始模式等）支持 `appsettings.json` 配置
 - **单元测试**：xUnit 测试框架，覆盖核心逻辑（SharedData、RegisterMap 等）
 - **文档生成**：自动生成 `REGISTER_MAP.md`，详细说明每个寄存器的地址、类型、缩放因子
+
+### 🖥️ Web HMI 界面 (BlazorScadaHmi)
+- **实时监控面板**：温度、压力、设备状态实时展示
+- **📊 历史趋势图**：数据可视化，支持 1/5/15 分钟时间范围选择
+- **🔔 告警系统**：
+  - 实时告警检测（高温、低压、设备停止等）
+  - 告警历史记录
+  - 告警确认机制
+  - 可配置告警规则
+- **⚡ SignalR 实时推送**：毫秒级数据更新，无需刷新页面
+- **🔐 用户权限控制**：
+  - Cookie 认证
+  - 三级角色：Admin / Operator / Viewer
+  - 操作级别权限控制
 
 ---
 
@@ -60,6 +76,21 @@ Loaded Config: Port=5020, Mode=Random
 ...
 Press Ctrl+C to stop.
 ```
+
+### 运行 Web HMI 界面
+
+```bash
+dotnet run --project BlazorScadaHmi/BlazorScadaHmi.csproj
+```
+
+访问 https://localhost:5001 或 http://localhost:5000
+
+**默认用户**：
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| admin | admin | Admin |
+| operator | operator | Operator |
+| viewer | viewer | Viewer |
 
 ---
 
@@ -203,19 +234,48 @@ dotnet test ModbusOpcGateway_xUnit/ModbusOpcGateway_xUnit.csproj
 ## 🏛️ 项目结构
 
 ```
-ModbusOpcGateway/
+ModbusOpcGateway/                 # Modbus 模拟器（控制台/Windows 服务）
 ├── Program.cs                    # 主程序
-├── GeneratorService.cs           # 数据生成后台服务
-├── ModbusServerService.cs        # Modbus TCP 服务（支持热重载）
-├── SharedData.cs                 # 线程安全数据模型（含故障模拟）
-├── RegisterMap.cs                # 寄存器定义
-├── TimeProvider.cs               # 时间接口（支持单测）
-├── RandomProvider.cs             # 随机数接口（支持单测）
-├── AppSettings.cs                # 配置类
 ├── appsettings.json              # 配置文件
 └── logs/                         # 日志输出目录
 
-ModbusOpcGateway_xUnit/
+Industrial.Core/                  # 核心类库（共享）
+├── Services/
+│   ├── AlarmService.cs           # 告警检测服务
+│   ├── AlarmBroadcastService.cs  # 告警 SignalR 广播
+│   ├── DataHistoryService.cs     # 历史数据缓存
+│   └── AuthService.cs            # 用户认证服务
+├── Models/
+│   ├── Alarm.cs                  # 告警模型
+│   └── User.cs                   # 用户模型
+├── ScadaHub.cs                   # SignalR Hub
+├── SharedData.cs                 # 线程安全数据模型
+├── GeneratorService.cs           # 数据生成后台服务
+├── ModbusServerService.cs        # Modbus TCP 服务
+├── RegisterMap.cs                # 寄存器定义
+└── AppSettingsMap.cs             # 配置类
+
+BlazorScadaHmi/                   # Web HMI 界面
+├── Components/
+│   ├── Pages/
+│   │   ├── ScadaMonitor.razor    # 监控面板
+│   │   ├── Trends.razor          # 历史趋势图
+│   │   ├── Alarms.razor          # 告警管理
+│   │   └── Login.razor           # 登录页面
+│   ├── Charts/
+│   │   └── TrendChart.razor      # 趋势图组件
+│   ├── Alarms/
+│   │   ├── ActiveAlarmsTable.razor    # 活动告警表
+│   │   ├── AlarmHistoryTable.razor    # 告警历史表
+│   │   └── AlarmRulesTable.razor      # 告警规则表
+│   └── Layout/                   # 布局组件
+├── Services/
+│   ├── CustomAuthStateProvider.cs    # 认证状态提供者
+│   └── UiStateService.cs             # UI 状态服务
+├── Program.cs                    # Blazor 程序入口
+└── appsettings.json              # 用户配置
+
+ModbusOpcGateway_xUnit/           # 单元测试
 ├── SharedDataTests.cs            # 数据层单测
 ├── RegisterMapTests.cs           # 寄存器映射单测
 ├── AppSettingsTests.cs           # 配置类单测
@@ -262,12 +322,24 @@ data.SetNoiseMultiplier(0.8f);
 
 ---
 
+## 👥 用户角色权限
+
+| 角色 | 查看数据 | 参数调整 | 告警确认 | 故障注入 |
+|------|:--------:|:--------:|:--------:|:--------:|
+| **Admin** | ✅ | ✅ | ✅ | ✅ |
+| **Operator** | ✅ | ✅ | ✅ | ❌ |
+| **Viewer** | ✅ | ❌ | ❌ | ❌ |
+
+---
+
 ## 💡 常见用途
 
 1. **测试 Modbus 客户端** - 无需真实 PLC
 2. **学习 Modbus 协议** - 可配置的测试场景
 3. **性能测试** - 调整噪声和延迟参数
 4. **故障场景模拟** - Frozen 模式、网络延迟等
+5. **SCADA 系统开发** - 完整的 HMI 界面参考实现
+6. **告警系统原型** - 可配置规则、实时检测、历史记录
 
 ---
 
@@ -318,6 +390,6 @@ MIT License
 
 ---
 
-**版本**：v1.1.0  
+**版本**：v1.2.0  
 **维护者**：am-workspace  
-**更新时间**：2026-03-27
+**更新时间**：2026-03-29
