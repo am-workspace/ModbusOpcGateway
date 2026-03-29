@@ -179,6 +179,7 @@ namespace Industrial.Core
         public void InjectFaultyTemperature()
         {
             lock (_lock) _temperature = 999.9f;
+            NotifyDataChanged();
         }
 
         /// <summary>
@@ -188,6 +189,7 @@ namespace Industrial.Core
         public void InjectFaultyPressure()
         {
             lock (_lock) _pressure = -50.0f;
+            NotifyDataChanged();
         }
 
         /// <summary>
