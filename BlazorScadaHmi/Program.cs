@@ -1,11 +1,15 @@
 using BlazorScadaHmi.Components;
 using Industrial.Core;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// 注册 MudBlazor
+builder.Services.AddMudServices();
 
 // 注册 SignalR
 builder.Services.AddSignalR();

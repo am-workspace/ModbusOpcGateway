@@ -7,116 +7,128 @@
 
 <PageTitle>SCADA 监控面板</PageTitle>
 
-<h1>SCADA 监控面板</h1>
+<MudText Typo="Typo.h4" Class="mb-4">SCADA 监控面板</MudText>
 
 @if (!_isConnected)
 {
-    <div class="alert alert-warning d-flex align-items-center">
-        <span class="spinner-border spinner-border-sm me-2"></span>
-        <div>
-            <strong>正在连接服务器...</strong>
-            <div class="small">SignalR 连接中，请稍候</div>
-        </div>
-    </div>
+    <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.Sync">
+        <MudText Typo="Typo.subtitle1">正在连接服务器...</MudText>
+        <MudText Typo="Typo.caption">SignalR 连接中，请稍候</MudText>
+    </MudAlert>
 }
 else if (_connectionState == HubConnectionState.Reconnecting)
 {
-    <div class="alert alert-info d-flex align-items-center">
-        <span class="spinner-border spinner-border-sm me-2"></span>
-        <div>
-            <strong>连接中断，正在重连...</strong>
-            <div class="small">网络波动，尝试恢复连接</div>
-        </div>
-    </div>
+    <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.SyncProblem">
+        <MudText Typo="Typo.subtitle1">连接中断，正在重连...</MudText>
+        <MudText Typo="Typo.caption">网络波动，尝试恢复连接</MudText>
+    </MudAlert>
 }
 else if (_connectionState == HubConnectionState.Disconnected && _hasConnectedBefore)
 {
-    <div class="alert alert-danger d-flex align-items-center justify-content-between">
-        <div>
-            <strong>连接已断开</strong>
-            <div class="small">无法连接到服务器，请检查网络</div>
+    <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.CloudOff">
+        <div class="d-flex align-items-center justify-content-between w-100">
+            <div>
+                <MudText Typo="Typo.subtitle1">连接已断开</MudText>
+                <MudText Typo="Typo.caption">无法连接到服务器，请检查网络</MudText>
+            </div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="ReconnectAsync">重新连接</MudButton>
         </div>
-        <button class="btn btn-sm btn-outline-danger" @onclick="ReconnectAsync">重新连接</button>
-    </div>
+    </MudAlert>
 }
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5>实时数据</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">温度 (°C)</label>
-                    <div class="display-4 text-primary">@_temperature.ToString("F1")</div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">压力 (kPa)</label>
-                    <div class="display-4 text-success">@_pressure.ToString("F1")</div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">设备状态</label>
-                    <div class="display-6 @(_status ? "text-success" : "text-danger")">
-                        @(_status ? "运行中" : "已停止")
+<MudGrid Class="mt-4">
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">实时数据</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.Thermostat" Color="Color.Primary" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudStack Spacing="3">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">温度 (°C)</MudText>
+                        <MudText Typo="Typo.h3" Color="Color.Primary">@_temperature.ToString("F1")</MudText>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                    <MudDivider />
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">压力 (kPa)</MudText>
+                        <MudText Typo="Typo.h3" Color="Color.Success">@_pressure.ToString("F1")</MudText>
+                    </div>
+                    <MudDivider />
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">设备状态</MudText>
+                        <MudText Typo="Typo.h5" Color="@(_status ? Color.Success : Color.Error)">
+                            @(_status ? "运行中" : "已停止")
+                        </MudText>
+                    </div>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5>控制面板</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">模拟模式</label>
-                    <select class="form-select" @bind="_selectedMode" @bind:after="OnModeChanged">
-                        <option value="0">Random (随机)</option>
-                        <option value="1">Trend (趋势)</option>
-                        <option value="2">Frozen (冻结)</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">噪声系数: @_noise.ToString("F1")</label>
-                    <input type="range" class="form-range" min="0" max="10" step="0.1" 
-                           @bind="_noise" @bind:event="oninput" @bind:after="OnNoiseChanged" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">响应延迟 (ms): @_delayMs</label>
-                    <input type="range" class="form-range" min="0" max="5000" step="100" 
-                           @bind="_delayMs" @bind:event="oninput" @bind:after="OnDelayChanged" />
-                </div>
-            </div>
-        </div>
-    </div>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">控制面板</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Info" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudStack Spacing="3">
+                    <MudSelect T="int" Label="模拟模式" @bind-Value="_selectedMode" @bind-Value:after="OnModeChanged">
+                        <MudSelectItem Value="0">Random (随机)</MudSelectItem>
+                        <MudSelectItem Value="1">Trend (趋势)</MudSelectItem>
+                        <MudSelectItem Value="2">Frozen (冻结)</MudSelectItem>
+                    </MudSelect>
+                    <div>
+                        <MudText Typo="Typo.caption">噪声系数: @_noise.ToString("F1")</MudText>
+                        <MudSlider T="float" Min="0" Max="10" Step="0.1f" Value="_noise" ValueChanged="async (value) => { _noise = value; await OnNoiseChanged(); }" />
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption">响应延迟 (ms): @_delayMs</MudText>
+                        <MudSlider T="int" Min="0" Max="5000" Step="100" Value="_delayMs" ValueChanged="async (value) => { _delayMs = value; await OnDelayChanged(); }" />
+                    </div>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-warning text-dark">
-                <h5>故障注入</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <button class="btn btn-outline-success" @onclick="ResumeNormal">
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">故障注入</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.BugReport" Color="Color.Warning" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="ResumeNormal">
                         恢复正常
-                    </button>
-                    <button class="btn btn-outline-danger" @onclick="InjectFaultyTemperature">
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Warning" OnClick="InjectFaultyTemperature">
                         异常温度 (999.9°C)
-                    </button>
-                    <button class="btn btn-outline-danger" @onclick="InjectFaultyPressure">
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Warning" OnClick="InjectFaultyPressure">
                         异常压力 (-50.0 kPa)
-                    </button>
-                    <button class="btn btn-outline-warning" @onclick="FreezeData">
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Pause" OnClick="FreezeData">
                         冻结数据
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
 
 @code {
     private float _temperature;
