@@ -11,9 +11,32 @@
 
 @if (!_isConnected)
 {
-    <div class="alert alert-warning">
-        <span class="spinner-border spinner-border-sm"></span>
-        正在连接 SignalR...
+    <div class="alert alert-warning d-flex align-items-center">
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        <div>
+            <strong>正在连接服务器...</strong>
+            <div class="small">SignalR 连接中，请稍候</div>
+        </div>
+    </div>
+}
+else if (_connectionState == HubConnectionState.Reconnecting)
+{
+    <div class="alert alert-info d-flex align-items-center">
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        <div>
+            <strong>连接中断，正在重连...</strong>
+            <div class="small">网络波动，尝试恢复连接</div>
+        </div>
+    </div>
+}
+else if (_connectionState == HubConnectionState.Disconnected && _hasConnectedBefore)
+{
+    <div class="alert alert-danger d-flex align-items-center justify-content-between">
+        <div>
+            <strong>连接已断开</strong>
+            <div class="small">无法连接到服务器，请检查网络</div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" @onclick="ReconnectAsync">重新连接</button>
     </div>
 }
 
@@ -105,14 +128,39 @@
 
     private HubConnection? _hubConnection;
     private bool _isConnected;
+    private HubConnectionState _connectionState;
+    private bool _hasConnectedBefore;
 
     protected override async Task OnInitializedAsync()
     {
         // 创建 SignalR 连接
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/scadahub"))
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30)])
             .Build();
+
+        // 监听连接状态变化
+        _hubConnection.Reconnecting += error =>
+        {
+            _connectionState = HubConnectionState.Reconnecting;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        };
+
+        _hubConnection.Reconnected += connectionId =>
+        {
+            _connectionState = HubConnectionState.Connected;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        };
+
+        _hubConnection.Closed += error =>
+        {
+            _connectionState = HubConnectionState.Disconnected;
+            _isConnected = false;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        };
 
         // 注册数据更新回调
         _hubConnection.On<DataSnapshot>("DataUpdated", snapshot =>
@@ -128,6 +176,8 @@
 
         await _hubConnection.StartAsync();
         _isConnected = true;
+        _hasConnectedBefore = true;
+        _connectionState = HubConnectionState.Connected;
 
         // 获取初始数据
         var snapshot = await _hubConnection.InvokeAsync<DataSnapshot>("GetDataSnapshot");
@@ -194,6 +244,33 @@
         {
             await _hubConnection.InvokeAsync("FreezeData");
             _selectedMode = 2;
+        }
+    }
+
+    private async Task ReconnectAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            try
+            {
+                await _hubConnection.StartAsync();
+                _isConnected = true;
+                _connectionState = HubConnectionState.Connected;
+
+                // 重新获取数据
+                var snapshot = await _hubConnection.InvokeAsync<DataSnapshot>("GetDataSnapshot");
+                _temperature = snapshot.Temperature;
+                _pressure = snapshot.Pressure;
+                _status = snapshot.Status;
+                _selectedMode = snapshot.Mode;
+                _noise = snapshot.NoiseMultiplier;
+                _delayMs = snapshot.ResponseDelayMs;
+            }
+            catch
+            {
+                // 连接失败，保持断开状态
+                _connectionState = HubConnectionState.Disconnected;
+            }
         }
     }
 
