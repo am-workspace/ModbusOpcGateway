@@ -1,0 +1,105 @@
+@using Industrial.Core.Services
+@inject DataHistoryService HistoryService
+
+<MudCard Elevation="2">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">@Title</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudSelect T="TimeSpan" @bind-Value="_selectedRange" @bind-Value:after="OnRangeChanged"
+                       Dense="true" Margin="Margin.Dense" Style="width: 120px">
+                <MudSelectItem Value="TimeSpan.FromMinutes(1)">最近1分钟</MudSelectItem>
+                <MudSelectItem Value="TimeSpan.FromMinutes(5)">最近5分钟</MudSelectItem>
+                <MudSelectItem Value="TimeSpan.FromMinutes(15)">最近15分钟</MudSelectItem>
+            </MudSelect>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (_series.Count > 0)
+        {
+            <MudChart ChartType="ChartType.Line"
+                      ChartSeries="_series"
+                      XAxisLabels="@_labels"
+                      ChartOptions="_options"
+                      Width="100%"
+                      Height="350px" />
+        }
+        else
+        {
+            <MudText Align="Align.Center" Color="Color.Secondary">暂无数据</MudText>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "趋势图";
+
+    private List<ChartSeries<double>> _series = new();
+    private string[] _labels = Array.Empty<string>();
+    private ChartOptions _options = new();
+
+    private TimeSpan _selectedRange = TimeSpan.FromMinutes(1);
+
+    protected override void OnInitialized()
+    {
+        RefreshData();
+    }
+
+    private void OnRangeChanged()
+    {
+        RefreshData();
+    }
+
+    private void RefreshData()
+    {
+        var data = HistoryService.GetHistory(_selectedRange);
+
+        if (data.Count == 0)
+        {
+            _series.Clear();
+            _labels = Array.Empty<string>();
+            return;
+        }
+
+        // 采样显示，最多显示30个点
+        var sampledData = SampleData(data, 30);
+
+        var tempSeries = new ChartSeries<double>
+        {
+            Name = "温度 (°C)",
+            Data = sampledData.Select(p => Math.Round((double)p.Temperature, 2)).ToArray()
+        };
+
+        var pressSeries = new ChartSeries<double>
+        {
+            Name = "压力 (kPa)",
+            Data = sampledData.Select(p => Math.Round((double)p.Pressure, 2)).ToArray()
+        };
+
+        _series = new List<ChartSeries<double>> { tempSeries, pressSeries };
+
+        // 生成时间标签
+        _labels = sampledData
+            .Select(p => p.Timestamp.ToString("HH:mm:ss"))
+            .ToArray();
+    }
+
+    private List<DataPoint> SampleData(List<DataPoint> data, int maxPoints)
+    {
+        if (data.Count <= maxPoints)
+            return data;
+
+        var result = new List<DataPoint>();
+        var step = (double)data.Count / maxPoints;
+
+        for (int i = 0; i < maxPoints; i++)
+        {
+            var index = (int)(i * step);
+            result.Add(data[index]);
+        }
+
+        return result;
+    }
+}

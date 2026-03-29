@@ -1,5 +1,6 @@
 using BlazorScadaHmi.Components;
 using Industrial.Core;
+using Industrial.Core.Services;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,9 +17,11 @@ builder.Services.AddSignalR();
 
 // 注册 Industrial.Core 服务
 builder.Services.AddSingleton<SharedData>();
+builder.Services.AddSingleton<DataHistoryService>();
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddHostedService<ModbusServerService>();
 builder.Services.AddHostedService<ScadaBroadcastService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DataHistoryService>());
 builder.Services.Configure<AppSettings>(builder.Configuration);
 
 var app = builder.Build();
