@@ -18,10 +18,13 @@ builder.Services.AddSignalR();
 // 注册 Industrial.Core 服务
 builder.Services.AddSingleton<SharedData>();
 builder.Services.AddSingleton<DataHistoryService>();
+builder.Services.AddSingleton<AlarmService>();
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddHostedService<ModbusServerService>();
 builder.Services.AddHostedService<ScadaBroadcastService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DataHistoryService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AlarmService>());
+builder.Services.AddHostedService<AlarmBroadcastService>();
 builder.Services.Configure<AppSettings>(builder.Configuration);
 
 var app = builder.Build();

@@ -1,0 +1,64 @@
+@using Industrial.Core.Models
+
+<MudTable Items="Rules" Dense="true" Hover="true">
+    <HeaderContent>
+        <MudTh>规则名称</MudTh>
+        <MudTh>监控参数</MudTh>
+        <MudTh>条件</MudTh>
+        <MudTh>阈值</MudTh>
+        <MudTh>级别</MudTh>
+        <MudTh>状态</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Parameter</MudTd>
+        <MudTd>@GetOperatorText(context.Operator)</MudTd>
+        <MudTd>@context.Threshold.ToString("F2")</MudTd>
+        <MudTd>
+            <MudChip T="string" Color="@GetLevelColor(context.Level)" Size="Size.Small">
+                @GetLevelText(context.Level)
+            </MudChip>
+        </MudTd>
+        <MudTd>
+            @if (context.IsEnabled)
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">启用</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Default" Size="Size.Small">禁用</MudChip>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Color="Color.Secondary" Class="pa-4">暂无告警规则</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter]
+    public List<AlarmRule> Rules { get; set; } = new();
+
+    private static Color GetLevelColor(AlarmLevel level) => level switch
+    {
+        AlarmLevel.Warning => Color.Warning,
+        AlarmLevel.Critical => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string GetLevelText(AlarmLevel level) => level switch
+    {
+        AlarmLevel.Warning => "警告",
+        AlarmLevel.Critical => "严重",
+        _ => "未知"
+    };
+
+    private static string GetOperatorText(AlarmOperator op) => op switch
+    {
+        AlarmOperator.GreaterThan => ">",
+        AlarmOperator.LessThan => "<",
+        AlarmOperator.EqualTo => "=",
+        AlarmOperator.NotEqualTo => "≠",
+        _ => "?"
+    };
+}

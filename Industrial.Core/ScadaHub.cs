@@ -1,3 +1,5 @@
+using Industrial.Core.Models;
+using Industrial.Core.Services;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
 
@@ -9,11 +11,13 @@ namespace Industrial.Core
     public class ScadaHub : Hub
     {
         private readonly SharedData _sharedData;
+        private readonly AlarmService _alarmService;
         private readonly ILogger _log;
 
-        public ScadaHub(SharedData sharedData)
+        public ScadaHub(SharedData sharedData, AlarmService alarmService)
         {
             _sharedData = sharedData;
+            _alarmService = alarmService;
             _log = Log.ForContext<ScadaHub>();
         }
 
@@ -117,6 +121,41 @@ namespace Industrial.Core
         {
             _log.Information("[SignalR] Client disconnected: {ConnectionId}", Context.ConnectionId);
             return base.OnDisconnectedAsync(exception);
+        }
+
+        // ==================== 告警相关接口 ====================
+
+        /// <summary>
+        /// 客户端调用：获取当前活动告警
+        /// </summary>
+        public Task<List<AlarmRecord>> GetActiveAlarms()
+        {
+            return Task.FromResult(_alarmService.GetActiveAlarms());
+        }
+
+        /// <summary>
+        /// 客户端调用：获取告警历史
+        /// </summary>
+        public Task<List<AlarmRecord>> GetAlarmHistory(int count = 50)
+        {
+            return Task.FromResult(_alarmService.GetAlarmHistory(count));
+        }
+
+        /// <summary>
+        /// 客户端调用：确认告警
+        /// </summary>
+        public Task<bool> AcknowledgeAlarm(string alarmId)
+        {
+            var result = _alarmService.AcknowledgeAlarm(alarmId, Context.ConnectionId);
+            return Task.FromResult(result);
+        }
+
+        /// <summary>
+        /// 客户端调用：获取告警规则
+        /// </summary>
+        public Task<List<AlarmRule>> GetAlarmRules()
+        {
+            return Task.FromResult(_alarmService.GetRules());
         }
     }
 

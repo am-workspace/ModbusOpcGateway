@@ -1,0 +1,63 @@
+@using Industrial.Core.Models
+
+<MudTable Items="Alarms" Dense="true" Hover="true" Striped="true">
+    <HeaderContent>
+        <MudTh>级别</MudTh>
+        <MudTh>规则名称</MudTh>
+        <MudTh>参数</MudTh>
+        <MudTh>实际值</MudTh>
+        <MudTh>阈值</MudTh>
+        <MudTh>触发时间</MudTh>
+        <MudTh>操作</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            <MudChip T="string" Color="@GetLevelColor(context.Level)" Size="Size.Small">
+                @GetLevelText(context.Level)
+            </MudChip>
+        </MudTd>
+        <MudTd>@context.RuleName</MudTd>
+        <MudTd>@context.Parameter</MudTd>
+        <MudTd>@context.ActualValue.ToString("F2")</MudTd>
+        <MudTd>@context.Threshold.ToString("F2")</MudTd>
+        <MudTd>@context.TriggeredAt.ToString("HH:mm:ss")</MudTd>
+        <MudTd>
+            @if (!context.IsAcknowledged)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                           OnClick="() => OnAcknowledge.InvokeAsync(context.Id)">
+                    确认
+                </MudButton>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Color="Color.Success">已确认</MudText>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Color="Color.Secondary" Class="pa-4">暂无活动告警</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter]
+    public List<AlarmRecord> Alarms { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<string> OnAcknowledge { get; set; }
+
+    private static Color GetLevelColor(AlarmLevel level) => level switch
+    {
+        AlarmLevel.Warning => Color.Warning,
+        AlarmLevel.Critical => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string GetLevelText(AlarmLevel level) => level switch
+    {
+        AlarmLevel.Warning => "警告",
+        AlarmLevel.Critical => "严重",
+        _ => "未知"
+    };
+}

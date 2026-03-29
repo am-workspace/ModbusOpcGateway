@@ -1,0 +1,108 @@
+@page "/alarms"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>告警管理 - SCADA 监控系统</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">告警管理</MudText>
+
+@if (!_isConnected)
+{
+    <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.Sync">
+        <MudText Typo="Typo.subtitle1">正在连接服务器...</MudText>
+    </MudAlert>
+}
+else
+{
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="活动告警" Icon="@Icons.Material.Filled.NotificationImportant">
+            <ActiveAlarmsTable Alarms="_activeAlarms" OnAcknowledge="AcknowledgeAlarmAsync" />
+        </MudTabPanel>
+        <MudTabPanel Text="告警历史" Icon="@Icons.Material.Filled.History">
+            <AlarmHistoryTable Alarms="_alarmHistory" />
+        </MudTabPanel>
+        <MudTabPanel Text="告警规则" Icon="@Icons.Material.Filled.Rule">
+            <AlarmRulesTable Rules="_alarmRules" />
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private HubConnection? _hubConnection;
+    private bool _isConnected;
+    private List<AlarmRecord> _activeAlarms = new();
+    private List<AlarmRecord> _alarmHistory = new();
+    private List<AlarmRule> _alarmRules = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/scadahub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        // 注册告警事件
+        _hubConnection.On<AlarmRecord>("AlarmTriggered", OnAlarmTriggered);
+        _hubConnection.On<AlarmRecord>("AlarmRecovered", OnAlarmRecovered);
+
+        await _hubConnection.StartAsync();
+        _isConnected = true;
+
+        // 加载初始数据
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        if (_hubConnection is null) return;
+
+        _activeAlarms = await _hubConnection.InvokeAsync<List<AlarmRecord>>("GetActiveAlarms");
+        _alarmHistory = await _hubConnection.InvokeAsync<List<AlarmRecord>>("GetAlarmHistory", 50);
+        _alarmRules = await _hubConnection.InvokeAsync<List<AlarmRule>>("GetAlarmRules");
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnAlarmTriggered(AlarmRecord record)
+    {
+        _activeAlarms.Insert(0, record);
+        _alarmHistory.Insert(0, record);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnAlarmRecovered(AlarmRecord record)
+    {
+        var existing = _activeAlarms.FirstOrDefault(a => a.Id == record.Id);
+        if (existing != null)
+        {
+            existing.IsActive = false;
+            _activeAlarms.Remove(existing);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AcknowledgeAlarmAsync(string alarmId)
+    {
+        if (_hubConnection is null) return;
+
+        var result = await _hubConnection.InvokeAsync<bool>("AcknowledgeAlarm", alarmId);
+        if (result)
+        {
+            var alarm = _activeAlarms.FirstOrDefault(a => a.Id == alarmId);
+            if (alarm != null)
+            {
+                alarm.AcknowledgedAt = DateTime.Now;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
