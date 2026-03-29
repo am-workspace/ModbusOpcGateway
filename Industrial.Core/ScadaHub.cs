@@ -1,5 +1,6 @@
 using Industrial.Core.Models;
 using Industrial.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
 
@@ -7,6 +8,7 @@ namespace Industrial.Core
 {
     /// <summary>
     /// SignalR Hub：为 SCADA HMI 提供实时数据推送和远程控制接口
+    /// 权限控制在方法级别配置，允许匿名连接但控制操作需要授权
     /// </summary>
     public class ScadaHub : Hub
     {
@@ -24,6 +26,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：获取当前数据快照
         /// </summary>
+        [AllowAnonymous]
         public Task<DataSnapshot> GetDataSnapshot()
         {
             var (temp, press, status) = _sharedData.Snapshot();
@@ -41,6 +44,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：设置模拟模式
         /// </summary>
+        [Authorize(Roles = "Operator,Admin")]
         public Task SetMode(int mode)
         {
             if (Enum.IsDefined(typeof(SharedData.SimulationMode), mode))
@@ -54,6 +58,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：设置噪声系数
         /// </summary>
+        [Authorize(Roles = "Operator,Admin")]
         public Task SetNoiseMultiplier(float noise)
         {
             _sharedData.SetNoiseMultiplier(noise);
@@ -64,6 +69,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：设置响应延迟
         /// </summary>
+        [Authorize(Roles = "Operator,Admin")]
         public Task SetResponseDelay(int delayMs)
         {
             _sharedData.SetResponseDelay(delayMs);
@@ -74,6 +80,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：恢复正常
         /// </summary>
+        [Authorize(Roles = "Operator,Admin")]
         public Task ResumeNormal()
         {
             _sharedData.ResumeNormal();
@@ -84,6 +91,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：注入异常温度
         /// </summary>
+        [Authorize(Roles = "Admin")]
         public Task InjectFaultyTemperature()
         {
             _sharedData.InjectFaultyTemperature();
@@ -94,6 +102,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：注入异常压力
         /// </summary>
+        [Authorize(Roles = "Admin")]
         public Task InjectFaultyPressure()
         {
             _sharedData.InjectFaultyPressure();
@@ -104,6 +113,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：冻结数据
         /// </summary>
+        [Authorize(Roles = "Admin")]
         public Task FreezeData()
         {
             _sharedData.FreezeData();
@@ -128,6 +138,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：获取当前活动告警
         /// </summary>
+        [AllowAnonymous]
         public Task<List<AlarmRecord>> GetActiveAlarms()
         {
             return Task.FromResult(_alarmService.GetActiveAlarms());
@@ -136,6 +147,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：获取告警历史
         /// </summary>
+        [AllowAnonymous]
         public Task<List<AlarmRecord>> GetAlarmHistory(int count = 50)
         {
             return Task.FromResult(_alarmService.GetAlarmHistory(count));
@@ -144,6 +156,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：确认告警
         /// </summary>
+        [Authorize(Roles = "Operator,Admin")]
         public Task<bool> AcknowledgeAlarm(string alarmId)
         {
             var result = _alarmService.AcknowledgeAlarm(alarmId, Context.ConnectionId);
@@ -153,6 +166,7 @@ namespace Industrial.Core
         /// <summary>
         /// 客户端调用：获取告警规则
         /// </summary>
+        [AllowAnonymous]
         public Task<List<AlarmRule>> GetAlarmRules()
         {
             return Task.FromResult(_alarmService.GetRules());

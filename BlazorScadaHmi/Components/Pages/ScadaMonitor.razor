@@ -1,7 +1,10 @@
 @page "/"
 @page "/monitor"
+@attribute [Authorize]
 @inject SharedData SharedData
 @inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ISnackbar Snackbar
 @implements IAsyncDisposable
 @rendermode InteractiveServer
 
@@ -142,120 +145,161 @@ else if (_connectionState == HubConnectionState.Disconnected && _hasConnectedBef
     private bool _isConnected;
     private HubConnectionState _connectionState;
     private bool _hasConnectedBefore;
+    private bool _initialized;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // 创建 SignalR 连接
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/scadahub"))
-            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30)])
-            .Build();
-
-        // 监听连接状态变化
-        _hubConnection.Reconnecting += error =>
+        if (firstRender && !_initialized)
         {
-            _connectionState = HubConnectionState.Reconnecting;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
+            // 检查是否已登录
+            // var user = HttpContextAccessor?.HttpContext?.User;
+            // if (user?.Identity?.IsAuthenticated != true)
+            // {
+            //     Navigation.NavigateTo("/login", forceLoad: true);
+            //     return;
+            // }
+            
+            _initialized = true;
+            await InitializeSignalRAsync();
+        }
+    }
 
-        _hubConnection.Reconnected += connectionId =>
+    private async Task InitializeSignalRAsync()
+    {
+        try
         {
+            // 获取浏览器 Cookie 用于 SignalR 认证
+            var cookieHeader = HttpContextAccessor?.HttpContext?.Request?.Headers.Cookie.ToString() ?? "";
+            
+            // 创建 SignalR 连接，传递认证 Cookie
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/scadahub"), options =>
+                {
+                    if (!string.IsNullOrEmpty(cookieHeader))
+                    {
+                        options.Headers.Add("Cookie", cookieHeader);
+                    }
+                })
+                .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30)])
+                .Build();
+
+            // 监听连接状态变化
+            _hubConnection.Reconnecting += error =>
+            {
+                _connectionState = HubConnectionState.Reconnecting;
+                InvokeAsync(StateHasChanged);
+                return Task.CompletedTask;
+            };
+
+            _hubConnection.Reconnected += connectionId =>
+            {
+                _connectionState = HubConnectionState.Connected;
+                InvokeAsync(StateHasChanged);
+                return Task.CompletedTask;
+            };
+
+            _hubConnection.Closed += error =>
+            {
+                _connectionState = HubConnectionState.Disconnected;
+                _isConnected = false;
+                InvokeAsync(StateHasChanged);
+                return Task.CompletedTask;
+            };
+
+            // 注册数据更新回调
+            _hubConnection.On<DataSnapshot>("DataUpdated", snapshot =>
+            {
+                _temperature = snapshot.Temperature;
+                _pressure = snapshot.Pressure;
+                _status = snapshot.Status;
+                _selectedMode = snapshot.Mode;
+                _noise = snapshot.NoiseMultiplier;
+                _delayMs = snapshot.ResponseDelayMs;
+                InvokeAsync(StateHasChanged);
+            });
+
+            await _hubConnection.StartAsync();
+            _isConnected = true;
+            _hasConnectedBefore = true;
             _connectionState = HubConnectionState.Connected;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
 
-        _hubConnection.Closed += error =>
-        {
-            _connectionState = HubConnectionState.Disconnected;
-            _isConnected = false;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
-
-        // 注册数据更新回调
-        _hubConnection.On<DataSnapshot>("DataUpdated", snapshot =>
-        {
+            // 获取初始数据
+            var snapshot = await _hubConnection.InvokeAsync<DataSnapshot>("GetDataSnapshot");
             _temperature = snapshot.Temperature;
             _pressure = snapshot.Pressure;
             _status = snapshot.Status;
             _selectedMode = snapshot.Mode;
             _noise = snapshot.NoiseMultiplier;
             _delayMs = snapshot.ResponseDelayMs;
-            InvokeAsync(StateHasChanged);
-        });
-
-        await _hubConnection.StartAsync();
-        _isConnected = true;
-        _hasConnectedBefore = true;
-        _connectionState = HubConnectionState.Connected;
-
-        // 获取初始数据
-        var snapshot = await _hubConnection.InvokeAsync<DataSnapshot>("GetDataSnapshot");
-        _temperature = snapshot.Temperature;
-        _pressure = snapshot.Pressure;
-        _status = snapshot.Status;
-        _selectedMode = snapshot.Mode;
-        _noise = snapshot.NoiseMultiplier;
-        _delayMs = snapshot.ResponseDelayMs;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ScadaMonitor] SignalR connection error: {ex.Message}");
+            _connectionState = HubConnectionState.Disconnected;
+        }
     }
 
     private async Task OnModeChanged()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.InvokeAsync("SetMode", _selectedMode);
-        }
+        await SafeInvokeAsync(() => _hubConnection!.InvokeAsync("SetMode", _selectedMode), "修改模式");
     }
 
     private async Task OnNoiseChanged()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.InvokeAsync("SetNoiseMultiplier", _noise);
-        }
+        await SafeInvokeAsync(() => _hubConnection!.InvokeAsync("SetNoiseMultiplier", _noise), "修改噪声系数");
     }
 
     private async Task OnDelayChanged()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.InvokeAsync("SetResponseDelay", _delayMs);
-        }
+        await SafeInvokeAsync(() => _hubConnection!.InvokeAsync("SetResponseDelay", _delayMs), "修改响应延迟");
     }
 
     private async Task ResumeNormal()
     {
-        if (_hubConnection is not null)
+        await SafeInvokeAsync(async () =>
         {
-            await _hubConnection.InvokeAsync("ResumeNormal");
+            await _hubConnection!.InvokeAsync("ResumeNormal");
             _selectedMode = 0;
-        }
+        }, "恢复正常");
     }
 
     private async Task InjectFaultyTemperature()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.InvokeAsync("InjectFaultyTemperature");
-        }
+        await SafeInvokeAsync(() => _hubConnection!.InvokeAsync("InjectFaultyTemperature"), "注入异常温度");
     }
 
     private async Task InjectFaultyPressure()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.InvokeAsync("InjectFaultyPressure");
-        }
+        await SafeInvokeAsync(() => _hubConnection!.InvokeAsync("InjectFaultyPressure"), "注入异常压力");
     }
 
     private async Task FreezeData()
     {
-        if (_hubConnection is not null)
+        await SafeInvokeAsync(async () =>
         {
-            await _hubConnection.InvokeAsync("FreezeData");
+            await _hubConnection!.InvokeAsync("FreezeData");
             _selectedMode = 2;
+        }, "冻结数据");
+    }
+
+    /// <summary>
+    /// 安全调用 SignalR 方法，捕获权限异常并提示用户
+    /// </summary>
+    private async Task SafeInvokeAsync(Func<Task> action, string operationName)
+    {
+        if (_hubConnection is null) return;
+        
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex.Message.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
+        {
+            Snackbar.Add($"权限不足：无法执行「{operationName}」操作", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"操作失败：{ex.Message}", Severity.Error);
         }
     }
 

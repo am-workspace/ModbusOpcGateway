@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
+using Industrial.Core.Models;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 namespace Industrial.Core
 {
@@ -11,6 +9,8 @@ namespace Industrial.Core
         public ModbusSettings Modbus { get; set; } = new();
         public SimulationSettings Simulation { get; set; } = new();
         public SerilogSettings Serilog { get; set; } = new();
+        public UserSettings Users { get; set; } = new();
+        public JwtSettings Jwt { get; set; } = new();
     }
 
     public class ModbusSettings
@@ -36,8 +36,13 @@ namespace Industrial.Core
         public string MinimumLevel { get; set; } = "Information";
     }
 
+    public class JwtSettings
+    {
+        public string Secret { get; set; } = "your-secret-key-must-be-at-least-16-characters";
+        public int TokenExpiryMinutes { get; set; } = 480; // 默认8小时
+    }
+
     public class AppSettingsMap
     {
-        
     }
 }

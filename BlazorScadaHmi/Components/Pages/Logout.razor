@@ -1,0 +1,6 @@
+@page "/logout"
+@inject NavigationManager Navigation
+
+@{
+    Navigation.NavigateTo("/login", forceLoad: true);
+}

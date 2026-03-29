@@ -1,0 +1,30 @@
+@rendermode InteractiveServer
+@using BlazorScadaHmi.Services
+@inject UiStateService UiState
+@implements IDisposable
+
+<MudDrawer 
+    Elevation="1"
+    Open="UiState.DrawerOpen" 
+    OpenChanged="(value) => UiState.SetDrawerOpen(value)" 
+    Variant="DrawerVariant.Mini"
+    ClipMode="DrawerClipMode.Always"
+    OpenMiniOnHover="true"
+    Breakpoint="Breakpoint.Md">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h6">AmWorkSpace</MudText>
+    </MudDrawerHeader>
+    <NavMenu />
+</MudDrawer>
+
+@code {
+    protected override void OnInitialized()
+    {
+        UiState.OnChange += StateHasChanged;
+    }
+    
+    public void Dispose()
+    {
+        UiState.OnChange -= StateHasChanged;
+    }
+}

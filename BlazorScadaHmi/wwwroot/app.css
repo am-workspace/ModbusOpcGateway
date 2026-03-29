@@ -1,6 +1,13 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    height: 100%;
+    margin: 0;
 }
+
+/* MudLayout 全高度 */
+/*.mud-main-content {
+    min-height: calc(100vh - 64px);
+}*/
 
 a, .btn-link {
     color: #006bb7;
