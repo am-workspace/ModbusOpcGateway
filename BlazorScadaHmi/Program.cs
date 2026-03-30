@@ -5,8 +5,21 @@ using Industrial.Core.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
+using Serilog;
+
+// 配置 Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 使用 Serilog
+builder.Logging.ClearProviders();
+builder.Logging.AddSerilog();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -38,8 +51,9 @@ builder.Services.AddSingleton<SharedData>();
 builder.Services.AddSingleton<DataHistoryService>();
 builder.Services.AddSingleton<AlarmService>();
 builder.Services.AddSingleton<AuthService>();
-builder.Services.AddHostedService<GeneratorService>();
-builder.Services.AddHostedService<ModbusServerService>();
+// builder.Services.AddHostedService<GeneratorService>();
+// builder.Services.AddHostedService<ModbusServerService>();
+builder.Services.AddHostedService<MqttSubscriberService>();
 builder.Services.AddHostedService<ScadaBroadcastService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DataHistoryService>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AlarmService>());
