@@ -463,7 +463,7 @@ namespace Industrial.Core
 
                         variable.Timestamp = DateTime.UtcNow;
                         variable.StatusCode = StatusCodes.Good;
-                        variable.ClearChangeMasks(SystemContext, false);
+                        variable.ClearChangeMasks(SystemContext, true);
                     }
                     catch (Exception ex)
                     {

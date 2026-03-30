@@ -153,7 +153,7 @@ namespace Industrial.Core
                                 shouldUpdate = false;
                             }
                             if (shouldUpdate)
-                                store.HoldingRegisters[addr] = valueToWrite;
+                                store.HoldingRegisters[addr + 1] = valueToWrite;
                         }
                     }
                     else if (e.ModbusDataType == ModbusDataType.Coil)
@@ -167,7 +167,7 @@ namespace Industrial.Core
                             if (addr == RegisterMap.StatusCoil)
                             {
                                 bool status = _sharedData.GetStatusCoil();
-                                store.CoilDiscretes[addr] = status;
+                                store.CoilDiscretes[addr + 1] = status;
                             }
                         }
                     }
@@ -182,7 +182,7 @@ namespace Industrial.Core
                         int count = registers.Count;
                         for (int i = 0; i < count; i++)
                         {
-                            ushort addr = (ushort)(e.StartAddress + i);
+                            ushort addr = (ushort)(e.StartAddress + i + 1);
                             ushort val = registers[i];
                             if (addr == RegisterMap.SimulationMode)
                             {
@@ -231,7 +231,7 @@ namespace Industrial.Core
                         int count = coils.Count;
                         for (int i = 0; i < count; i++)
                         {
-                            ushort addr = (ushort)(e.StartAddress + i);
+                            ushort addr = (ushort)(e.StartAddress + i + 1);
                             bool val = coils[i];
                             if (addr == RegisterMap.StatusCoil)
                             {
