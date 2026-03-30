@@ -44,6 +44,7 @@
 ### 🖥️ Web HMI 界面 (BlazorScadaHmi)
 - **实时监控面板**：温度、压力、设备状态实时展示
 - **📊 历史趋势图**：数据可视化，支持 1/5/15 分钟时间范围选择
+- **📥 数据导出**：历史趋势数据一键导出为 CSV 格式，支持 Excel 分析
 - **🔔 告警系统**：
   - 实时告警检测（高温、低压、设备停止等）
   - 告警历史记录
@@ -339,6 +340,7 @@ Industrial.Core/                  # 核心类库（共享）
 │   ├── AlarmService.cs           # 告警检测服务
 │   ├── AlarmBroadcastService.cs  # 告警 SignalR 广播
 │   ├── DataHistoryService.cs     # 历史数据缓存
+│   ├── DataExportService.cs      # 数据导出服务（CSV）
 │   └── AuthService.cs            # 用户认证服务
 ├── Models/
 │   ├── Alarm.cs                  # 告警模型
@@ -510,3 +512,4 @@ MIT License
 - **架构升级**：支持三项目独立部署（ModbusOpcGateway / PlcGateway / BlazorScadaHmi）
 - **数据解耦**：通过 MQTT 统一数据总线，实现数据源与展示的分离
 - **新增 PlcGateway 项目**：独立的 Modbus/OPC UA 数据采集网关
+- **新增 CSV 导出功能**：历史趋势数据支持一键导出，便于离线分析

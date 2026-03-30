@@ -49,6 +49,7 @@ builder.Services.AddScoped<UiStateService>();
 // 注册 Industrial.Core 服务
 builder.Services.AddSingleton<SharedData>();
 builder.Services.AddSingleton<DataHistoryService>();
+builder.Services.AddSingleton<DataExportService>();
 builder.Services.AddSingleton<AlarmService>();
 builder.Services.AddSingleton<AuthService>();
 // builder.Services.AddHostedService<GeneratorService>();
@@ -113,6 +114,15 @@ app.MapPost("/api/logout", async (HttpContext context) =>
 {
     await context.SignOutAsync("Cookies");
     context.Response.Redirect("/login");
+});
+
+// 数据导出 API 端点
+app.MapGet("/api/export/history", (DataExportService exportService, int? minutes) =>
+{
+    var duration = TimeSpan.FromMinutes(minutes ?? 15);
+    var csvBytes = exportService.ExportHistoryToCsvBytes(duration);
+    var fileName = exportService.GenerateFileName("history");
+    return Results.File(csvBytes, "text/csv", fileName);
 });
 
 app.Run();

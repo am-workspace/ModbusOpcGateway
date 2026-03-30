@@ -1,6 +1,8 @@
 @page "/trends"
 @attribute [Authorize]
 @rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <PageTitle>历史趋势 - SCADA 监控系统</PageTitle>
 
@@ -8,6 +10,59 @@
 
 <MudGrid>
     <MudItem xs="12">
+        <MudCard Class="mb-4">
+            <MudCardContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudSelect T="int" @bind-Value="_exportMinutes" Label="导出时间范围" Dense="true" Style="width: 150px;">
+                        <MudSelectItem Value="5">最近 5 分钟</MudSelectItem>
+                        <MudSelectItem Value="15">最近 15 分钟</MudSelectItem>
+                        <MudSelectItem Value="30">最近 30 分钟</MudSelectItem>
+                    </MudSelect>
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Filled.Download"
+                               OnClick="ExportData"
+                               Disabled="_isExporting">
+                        @if (_isExporting)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <MudText Class="ms-2">导出中...</MudText>
+                        }
+                        else
+                        {
+                            <MudText>导出 CSV</MudText>
+                        }
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12">
         <TrendChart Title="温度/压力趋势" />
     </MudItem>
 </MudGrid>
+
+@code {
+    private int _exportMinutes = 15;
+    private bool _isExporting = false;
+
+    private async Task ExportData()
+    {
+        _isExporting = true;
+        try
+        {
+            // 直接打开下载链接
+            var url = $"/api/export/history?minutes={_exportMinutes}";
+            Navigation.NavigateTo(url, forceLoad: true);
+            Snackbar.Add("数据导出成功", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"导出失败: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+}
