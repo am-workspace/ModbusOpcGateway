@@ -34,6 +34,7 @@ namespace ModbusOpcGateway
                     services.AddHostedService<GeneratorService>();
                     services.AddHostedService<ModbusServerService>();
                     services.AddHostedService<OpcUaServerService>();
+                    services.AddHostedService<MqttPublisherService>();
                 })
                 .UseSerilog((context, services, configuration) =>
                 {
