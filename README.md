@@ -50,6 +50,7 @@
   - 告警确认机制
   - 可配置告警规则
 - **⚡ SignalR 实时推送**：毫秒级数据更新，无需刷新页面
+- **📡 MQTT 数据订阅**：支持从 MQTT Broker 订阅数据，实现与模拟器/网关分离部署
 - **🔐 用户权限控制**：
   - Cookie 认证
   - 三级角色：Admin / Operator / Viewer
@@ -261,6 +262,70 @@ dotnet test ModbusOpcGateway_xUnit/ModbusOpcGateway_xUnit.csproj
 
 ---
 
+## 🏗️ 系统架构
+
+### 三项目独立部署架构
+
+本项目采用**模块化、可独立部署**的架构设计，三个项目通过 **MQTT** 进行数据解耦：
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  数据源层                                                                │
+├─────────────────────────────┬───────────────────────────────────────────┤
+│  ModbusOpcGateway           │   PlcGateway                              │
+│  (Modbus/OPC UA 模拟器)      │   (Modbus/OPC UA 网关)                     │
+│  ┌──────────────────────┐   │   ┌──────────────────────┐                │
+│  │ GeneratorService     │   │   │ ModbusClientService  │                │
+│  │ ModbusServerService  │   │   │ OpcUaClientService   │                │
+│  │ OpcUaServerService   │   │   └──────────┬───────────┘                │
+│  └──────────┬───────────┘   │              │                            │
+│             │               │              ▼                            │
+│             ▼               │   ┌──────────────────────┐                │
+│  ┌──────────────────────┐   │   │ MqttPublishService   │                │
+│  │ MqttPublisherService │   │   └──────────┬───────────┘                │
+│  └──────────┬───────────┘   └──────────────┼────────────────────────────┘
+│             │                              │
+│             └──────────────┬───────────────┘
+│                            ▼
+│                   ┌─────────────────┐
+│                   │   MQTT Broker   │  ← 统一数据总线
+│                   │  (Mosquitto等)  │
+│                   └────────┬────────┘
+│                            │
+└────────────────────────────┼─────────────────────────────────────────────┘
+                             │ MQTT Subscribe
+                             ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  展示层: BlazorScadaHmi                                                  │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │  MqttSubscriberService → SharedData → ScadaBroadcastService      │   │
+│  │                           ↓                      ↓               │   │
+│  │                     DataHistoryService      ScadaHub (SignalR)   │   │
+│  │                           ↓                      ↓               │   │
+│  │                     AlarmService          浏览器客户端           │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 数据流向
+
+| 项目 | 角色 | 数据流向 |
+|------|------|----------|
+| **ModbusOpcGateway** | 数据源 | 本地生成 → MQTT 发布 |
+| **PlcGateway** | 数据采集 | Modbus/OPC 读取 → MQTT 发布 |
+| **BlazorScadaHmi** | 数据展示 | MQTT 订阅 → SignalR 推送 |
+
+### 部署灵活性
+
+- **单机部署**：三个项目运行在同一机器，通过 localhost:1883 通信
+- **分布式部署**：
+  - ModbusOpcGateway 运行在服务器 A（连接现场设备）
+  - PlcGateway 运行在服务器 B（连接 PLC）
+  - BlazorScadaHmi 运行在服务器 C（Web 展示）
+- **混合部署**：根据现场需求灵活组合
+
+---
+
 ## 🏛️ 项目结构
 
 ```
@@ -284,6 +349,7 @@ Industrial.Core/                  # 核心类库（共享）
 ├── ModbusServerService.cs        # Modbus TCP 服务
 ├── OpcUaServerService.cs         # OPC UA Server 服务
 ├── MqttPublisherService.cs       # MQTT Publisher 服务
+├── MqttSubscriberService.cs      # MQTT Subscriber 服务（HMI 数据订阅）
 ├── RegisterMap.cs                # 寄存器定义
 └── AppSettingsMap.cs             # 配置类
 
@@ -305,7 +371,19 @@ BlazorScadaHmi/                   # Web HMI 界面
 │   ├── CustomAuthStateProvider.cs    # 认证状态提供者
 │   └── UiStateService.cs             # UI 状态服务
 ├── Program.cs                    # Blazor 程序入口
-└── appsettings.json              # 用户配置
+├── appsettings.json              # 用户配置
+└── logs/                         # 日志输出目录
+
+PlcGateway/                       # PLC 网关（独立部署）
+├── Services/
+│   ├── ModbusClientService.cs    # Modbus 客户端服务
+│   ├── OpcUaClientService.cs     # OPC UA 客户端服务
+│   └── MqttPublishService.cs     # MQTT 发布服务
+├── Configuration/
+│   └── GatewaySettings.cs        # 网关配置类
+├── Worker.cs                     # 后台工作器
+├── Program.cs                    # 程序入口
+└── appsettings.json              # 配置文件
 
 ModbusOpcGateway_xUnit/           # 单元测试
 ├── SharedDataTests.cs            # 数据层单测
@@ -422,6 +500,13 @@ MIT License
 
 ---
 
-**版本**：v1.3.0  
+**版本**：v1.4.0  
 **维护者**：am-workspace  
 **更新时间**：2026-03-30
+
+### v1.4.0 更新内容
+
+- **新增 MQTT 订阅功能**：BlazorScadaHmi 支持从 MQTT Broker 订阅数据
+- **架构升级**：支持三项目独立部署（ModbusOpcGateway / PlcGateway / BlazorScadaHmi）
+- **数据解耦**：通过 MQTT 统一数据总线，实现数据源与展示的分离
+- **新增 PlcGateway 项目**：独立的 Modbus/OPC UA 数据采集网关
