@@ -3,4 +3,5 @@
   <Project Path="Industrial.Core/Industrial.Core.csproj" />
   <Project Path="ModbusOpcGateway/ModbusOpcGateway.csproj" />
   <Project Path="ModbusOpcGateway_xUnit/ModbusOpcGateway_xUnit.csproj" Id="695b7e31-9334-45d3-976e-32a84eee272e" />
+  <Project Path="PlcGateway/PlcGateway.csproj" Id="2b4b18cb-4e81-4dd3-856e-4d360d99ab31" />
 </Solution>
