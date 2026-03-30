@@ -25,6 +25,22 @@
 - **单元测试**：xUnit 测试框架，覆盖核心逻辑（SharedData、RegisterMap 等）
 - **文档生成**：自动生成 `REGISTER_MAP.md`，详细说明每个寄存器的地址、类型、缩放因子
 
+### 🔌 多协议支持
+- **OPC UA Server**：基于 OPC Foundation .NET Standard SDK
+  - 地址空间：`Objects` → `Industrial` → 变量节点
+  - 支持 Subscription（订阅推送），数据变化实时通知客户端
+  - 自动证书管理，支持安全连接
+  - 验证工具：UA Expert
+  - 端口：4840（可配置）
+- **MQTT Publisher**：基于 MQTTnet 5.x
+  - Topic 格式：`industrial/{sensorId}/{parameter}`
+  - QoS 1（至少一次）保证消息可靠传输
+  - JSON 消息格式：`{parameter, value, timestamp, sensorId}`
+  - 条件式认证支持（Username/Password 可选）
+  - 验证工具：mosquitto_sub、MQTT.fx
+  - 端口：1883（可配置）
+- **协议独立开关**：每个协议可通过 `Enabled` 字段独立启用/禁用
+
 ### 🖥️ Web HMI 界面 (BlazorScadaHmi)
 - **实时监控面板**：温度、压力、设备状态实时展示
 - **📊 历史趋势图**：数据可视化，支持 1/5/15 分钟时间范围选择
@@ -111,6 +127,20 @@ dotnet run --project BlazorScadaHmi/BlazorScadaHmi.csproj
     "UpdateIntervalMs": 2000,      // 数据生成间隔 (ms)
     "DefaultNoise": 1.0,           // 初始噪声系数 (0.0-10.0)
     "DefaultDelayMs": 0            // 初始响应延迟 (ms)
+  },
+  "OpcUa": {
+    "Enabled": true,               // 启用 OPC UA Server
+    "Port": 4840,                  // OPC UA 端口
+    "ApplicationName": "ModbusOpcGateway",
+    "ApplicationUri": "urn:localhost:ModbusOpcGateway"
+  },
+  "Mqtt": {
+    "Enabled": true,               // 启用 MQTT Publisher
+    "Broker": "localhost",         // MQTT Broker 地址
+    "Port": 1883,                  // MQTT 端口
+    "TopicPrefix": "industrial",   // Topic 前缀
+    "Username": "gateway",         // 认证用户名（可选）
+    "Password": "secret"           // 认证密码（可选）
   }
 }
 ```
@@ -252,6 +282,8 @@ Industrial.Core/                  # 核心类库（共享）
 ├── SharedData.cs                 # 线程安全数据模型
 ├── GeneratorService.cs           # 数据生成后台服务
 ├── ModbusServerService.cs        # Modbus TCP 服务
+├── OpcUaServerService.cs         # OPC UA Server 服务
+├── MqttPublisherService.cs       # MQTT Publisher 服务
 ├── RegisterMap.cs                # 寄存器定义
 └── AppSettingsMap.cs             # 配置类
 
@@ -390,6 +422,6 @@ MIT License
 
 ---
 
-**版本**：v1.2.0  
+**版本**：v1.3.0  
 **维护者**：am-workspace  
-**更新时间**：2026-03-29
+**更新时间**：2026-03-30
