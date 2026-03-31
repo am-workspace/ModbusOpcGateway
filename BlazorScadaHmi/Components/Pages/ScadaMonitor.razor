@@ -166,7 +166,7 @@ else if (_connectionState == HubConnectionState.Disconnected && _hasConnectedBef
             // 创建 SignalR 连接，传递认证 Cookie
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(Navigation.ToAbsoluteUri("/scadahub")
-                // 好像没用
+                // 好像没用，Blazor Server 端的 SignalR 连接会自动携带浏览器 Cookie，所以这里不需要手动添加
                 // , options =>
                 // {
                 //     if (!string.IsNullOrEmpty(cookieHeader))
