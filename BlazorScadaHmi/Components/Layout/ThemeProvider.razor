@@ -1,0 +1,19 @@
+@rendermode InteractiveServer
+@using BlazorScadaHmi.Services
+@inject UiStateService UiState
+@implements IDisposable
+
+<MudThemeProvider IsDarkMode="@UiState.IsDarkMode" 
+                  IsDarkModeChanged="@((bool v) => UiState.SetDarkMode(v))" />
+
+@code {
+    protected override void OnInitialized()
+    {
+        UiState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        UiState.OnChange -= StateHasChanged;
+    }
+}

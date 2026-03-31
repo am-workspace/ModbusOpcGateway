@@ -472,6 +472,29 @@ mkdir logs
 # 确保有写入权限
 ```
 
+### Blazor 渲染模式注意事项
+
+本项目使用 .NET 8+ 的 Blazor Web App，**默认采用静态 SSR 渲染模式**，这导致了一个常见陷阱：
+
+> **问题现象**：组件的事件回调（如 `IsDarkModeChanged`）不触发，双向绑定失效。
+
+> **根因**：`@rendermode` 只能应用于路由组件，无法在布局组件（如 `MainLayout.razor`）上生效。
+
+**解决方案**：
+
+1. **封装交互组件**（本项目采用）：创建独立的 `ThemeProvider.razor` 组件，添加 `@rendermode InteractiveServer`
+2. **全局交互模式**：在 `App.razor` 中设置 `<Routes @rendermode="InteractiveServer" />`
+
+```razor
+<!-- 方案一：封装交互组件 -->
+<ThemeProvider />  <!-- 内部有 @rendermode InteractiveServer -->
+
+<!-- 方案二：全局交互（App.razor） -->
+<Routes @rendermode="InteractiveServer" />
+```
+
+> 💡 **吐槽**：.NET 8 Blazor 默认静态 SSR 的设计增加了开发心智负担，还会有很多没想到的bug，与 Vue/React 的默认动态绑定形成鲜明对比。对于内部系统，全局 InteractiveServer 是更务实的选择。
+
 ---
 
 ## 📚 相关资源
@@ -502,9 +525,15 @@ MIT License
 
 ---
 
-**版本**：v1.4.0  
+**版本**：v1.5.0  
 **维护者**：am-workspace  
-**更新时间**：2026-03-30
+**更新时间**：2026-03-31
+
+### v1.5.0 更新内容
+
+- **新增主题切换功能**：BlazorScadaHmi 支持亮色/暗色主题切换
+- **渲染模式说明**：新增 Blazor 静态 SSR 与 InteractiveServer 的踩坑说明
+- **新增 ThemeProvider 组件**：封装 MudThemeProvider 解决渲染模式问题
 
 ### v1.4.0 更新内容
 

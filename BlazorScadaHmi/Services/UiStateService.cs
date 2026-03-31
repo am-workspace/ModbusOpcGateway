@@ -6,18 +6,25 @@ namespace BlazorScadaHmi.Services
     public class UiStateService
     {
         public bool DrawerOpen { get; private set; } = true;
-        
+        public bool IsDarkMode { get; set; } = false;
+
         public event Action? OnChange;
-        
+
         public void ToggleDrawer()
         {
             DrawerOpen = !DrawerOpen;
             OnChange?.Invoke();
         }
-        
+
         public void SetDrawerOpen(bool open)
         {
             DrawerOpen = open;
+            OnChange?.Invoke();
+        }
+
+        public void SetDarkMode(bool isDark)
+        {
+            IsDarkMode = isDark;
             OnChange?.Invoke();
         }
     }
