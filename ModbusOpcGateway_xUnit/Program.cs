@@ -11,7 +11,7 @@ namespace ModbusOpcGateway_xUnit
     class Program
     {
         /// <summary>
-        /// 主程序，执行所有测试方法。
+        /// 主程序，执行所有测试方法。修改
         /// </summary>
         //static void Main()
         //{
