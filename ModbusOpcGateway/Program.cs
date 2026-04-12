@@ -1,4 +1,4 @@
-using Industrial.Core;
+using ModbusOpcGateway.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

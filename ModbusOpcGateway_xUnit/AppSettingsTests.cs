@@ -1,6 +1,6 @@
 using Xunit;
 using FluentAssertions;
-using Industrial.Core;
+using ModbusOpcGateway.Core;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using System.Linq;
